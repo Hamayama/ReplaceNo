@@ -5,7 +5,7 @@
 <title>ReplaceNo</title>
 <!--
     replaceno.html
-    2018-6-26 v1.00
+    2018-6-26 v1.01
 -->
 <style type="text/css">
 <!--
@@ -172,30 +172,33 @@ var ReplaceNo;
     var color_replaced = 0xff0000; // 置換部分の表示色
 
     // ***** 変数 *****
-    var src_st;       // ソース(文字列)
-    var pat_st;       // パターン(文字列)
-    var reg_pat;      // パターンの正規表現(オブジェクト)
-    var reg_pat_st;   // パターンの正規表現(文字列)
-    var start_no;     // 初期値
-    var step_no;      // 増分
-    var decimal_no;   // 小数の表示桁数
-    var show_color;   // 色表示フラグ(boolean)
-    var out_st;       // テキスト出力(文字列)
-    var html_st;      // HTML出力(文字列)
-    var line_st = []; // 行データ(文字列)(配列)
-    var out1_st = []; // 出力データ1(文字列)(配列)
-    var out2_st = []; // 出力データ2(文字列)(配列)
+    var src_st;     // ソース(文字列)
+    var pat_st;     // パターン(文字列)
+    var start_no;   // 初期値
+    var step_no;    // 増分
+    var decimal_no; // 小数の表示桁数
+    var show_color; // 色表示フラグ(boolean)
+    var out_st;     // テキスト出力(文字列)
+    var html_st;    // HTML出力(文字列)
 
     // ***** 公開I/F *****
 
     // ***** 変換実行 *****
     function convert(src_st1, pat_st1, start_no1, step_no1, decimal_no1, show_color1) {
-        var result = {}; // 戻り値
         var i;
-        var no1, no2;
-        var reg_newline  = /\r\n|\r|\n/; // 改行
-        var reg_digit    = /[+\-]?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?/g;      // 数値
-        var reg_digit_st = "[+\\-]?\\d+(?:\\.\\d+)?(?:[eE][+\\-]?\\d+)?"; // (上の文字列化)
+        var no;
+        var result = {};      // 戻り値
+        var line_st = [];     // 行データ(文字列)(配列)
+        var line_out_st = []; // 行データ出力(文字列)(配列)
+        var reg_pat;          // パターンの正規表現(オブジェクト)
+        var reg_pat_st;       // パターンの正規表現(文字列)
+        var reg_newline  = /\r\n|\r|\n/;
+                              // 改行の正規表現(オブジェクト)
+        var reg_digit    = /[+\-]?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?/g;
+                              // 数値の正規表現(オブジェクト)
+        var reg_digit_st = "[+\\-]?\\d+(?:\\.\\d+)?(?:[eE][+\\-]?\\d+)?";
+                              // 数値の正規表現(文字列)
+        var index_last, dummy_st;
 
         // ***** 戻り値の初期化 *****
         result = {};
@@ -234,8 +237,8 @@ var ReplaceNo;
         // if (decimal_no < 0)  { decimal_no = 0; }
         // if (decimal_no > 20) { decimal_no = 20; }
         try {
-            no1 = start_no;
-            no1.toFixed(decimal_no);
+            no = start_no;
+            no.toFixed(decimal_no);
         } catch (ex) {
             Alm2("decimal の値が不正です。");
             return result;
@@ -243,42 +246,52 @@ var ReplaceNo;
         // ***** 色表示フラグの取得 *****
         show_color = show_color1;
 
-        // ***** 変換 *****
-        no1 = start_no;
-        no2 = start_no;
-        out1_st = [];
-        out2_st = [];
+        // ***** テキスト出力の生成 *****
+        no = start_no;
+        line_out_st = [];
         for (i = 0; i < line_st.length; i++) {
-            // パターンにマッチした文字列の数値部分のみを連番に置換する
-            // (テキスト出力用)
-            out1_st[i] = line_st[i].replace(reg_pat, function (hit_st) {
+            // ***** 変換 *****
+            // (パターンにマッチした文字列の数値部分のみを連番に置換する)
+            line_out_st[i] = line_st[i].replace(reg_pat, function (hit_st) {
                 var ret_st = hit_st.replace(reg_digit, function () {
-                    var ret_st = no1.toFixed(decimal_no);
-                    no1 += step_no;
+                    var ret_st = no.toFixed(decimal_no);
+                    no += step_no;
                     return ret_st;
                 });
                 return ret_st;
             });
-            // (HTML出力用)
-            out2_st[i] = line_st[i].replace(reg_pat, function (hit_st) {
+        }
+        out_st = line_out_st.join("\n");
+
+        // ***** HTML出力の生成 *****
+        no = start_no;
+        line_out_st = [];
+        for (i = 0; i < line_st.length; i++) {
+            // ***** 変換 *****
+            // (パターンにマッチした文字列の数値部分のみを連番に置換する)
+            // (また、出力のサニタイズ(タグ無効化)処理を行う)
+            line_out_st[i] = "";
+            index_last = 0;
+            dummy_st = line_st[i].replace(reg_pat, function (hit_st, index) {
                 var ret_st = hit_st.replace(reg_digit, function () {
-                    var ret_st = no2.toFixed(decimal_no);
-                    no2 += step_no;
+                    var ret_st = no.toFixed(decimal_no);
+                    no += step_no;
                     return ret_st;
                 });
+                line_out_st[i] += escape_html(line_st[i].substring(index_last, index));
+                index_last = index + hit_st.length;
                 ret_st = escape_html(ret_st);
                 if (show_color) {
                     ret_st = "<span style='color: " +
                         make_color_code(color_replaced) + ";'>" +
                         ret_st + "<\/span>";
                 }
+                line_out_st[i] += ret_st;
                 return ret_st;
             });
+            line_out_st[i] += escape_html(line_st[i].substring(index_last, line_st[i].length));
         }
-
-        // ***** 出力の生成 *****
-        out_st = out1_st.join("\n");
-        html_st = out2_st.join("\n");
+        html_st = line_out_st.join("\n");
 
         // ***** 戻り値を返す *****
         result.out = out_st;
