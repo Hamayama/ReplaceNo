@@ -5,7 +5,7 @@
 <title>ReplaceNo</title>
 <!--
     replaceno.html
-    2018-6-26 v1.01
+    2018-6-27 v1.02
 -->
 <style type="text/css">
 <!--
@@ -160,7 +160,7 @@ function sample_button(sample_no) {
 //     pat_st      パターン(文字列)
 //     start_no    初期値
 //     step_no     増分
-//     decimal_no  小数の表示桁数
+//     decimal_no  小数部の表示桁数
 //     show_color  色表示フラグ(boolean)
 //     戻り値      結果オブジェクト
 //                   result.out   テキスト出力(文字列)
@@ -176,7 +176,7 @@ var ReplaceNo;
     var pat_st;     // パターン(文字列)
     var start_no;   // 初期値
     var step_no;    // 増分
-    var decimal_no; // 小数の表示桁数
+    var decimal_no; // 小数部の表示桁数
     var show_color; // 色表示フラグ(boolean)
     var out_st;     // テキスト出力(文字列)
     var html_st;    // HTML出力(文字列)
@@ -232,7 +232,7 @@ var ReplaceNo;
         start_no = +start_no1;
         // ***** 増分の取得 *****
         step_no = +step_no1;
-        // ***** 小数の表示桁数の取得 *****
+        // ***** 小数部の表示桁数の取得 *****
         decimal_no = decimal_no1 | 0;
         // if (decimal_no < 0)  { decimal_no = 0; }
         // if (decimal_no > 20) { decimal_no = 20; }
