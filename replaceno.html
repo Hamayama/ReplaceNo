@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>ReplaceNo</title>
+<!--
+    replaceno.html
+    2018-6-26 v1.00
+-->
+<style type="text/css">
+<!--
+.main_container {
+    background-color: #fffca8; /* 背景色 */
+    color: #000000;            /* 文字色 */
+}
+td { font-weight: bold; }
+-->
+</style>
+<script type="text/javascript">
+<!--
+// ****************************************
+//            ブラウザ関連処理等
+// ****************************************
+
+// ***** 汎用 *****
+function Alm(msg) {
+    // alert(msg);
+}
+function Alm2(msg) {
+    alert(msg);
+}
+function DebugShow(msg) {
+    document.getElementById("debug_show1").appendChild(document.createTextNode(msg));
+}
+function DebugShowClear() {
+    document.getElementById("debug_show1").innerHTML = "";
+}
+
+// ***** 変換ボタン *****
+function convert_button() {
+    var src_st;
+    var pat_st;
+    var start_no;
+    var step_no;
+    var decimal_no;
+    var show_color;
+    var result = {};
+
+    // ***** デバッグ表示の初期化 *****
+    DebugShowClear();
+    // ***** 要素の存在チェック *****
+    if (!document.getElementById("src_text1"))      { Alm("convert_button:0001"); return false; }
+    if (!document.getElementById("pattern"))        { Alm("convert_button:0002"); return false; }
+    if (!document.getElementById("start_number"))   { Alm("convert_button:0003"); return false; }
+    if (!document.getElementById("step_number"))    { Alm("convert_button:0004"); return false; }
+    if (!document.getElementById("decimal_number")) { Alm("convert_button:0005"); return false; }
+    if (!document.getElementById("show_color"))     { Alm("convert_button:0006"); return false; }
+    if (!document.getElementById("out_text1"))      { Alm("convert_button:0007"); return false; }
+    if (!document.getElementById("result_show1"))   { Alm("convert_button:0008"); return false; }
+    if (!document.getElementById("no_change"))      { Alm("convert_button:0009"); return false; }
+    // ***** ソースの取得 *****
+    src_st = document.getElementById("src_text1").value;
+    pat_st = document.getElementById("pattern").value;
+    start_no = document.getElementById("start_number").value;
+    step_no = document.getElementById("step_number").value;
+    decimal_no = document.getElementById("decimal_number").value;
+    show_color = document.getElementById("show_color").checked;
+    // ***** 変換実行 *****
+    result = ReplaceNo.convert(src_st, pat_st, start_no, step_no, decimal_no, show_color);
+    // ***** 出力の表示 *****
+    document.getElementById("out_text1").value = result.out;
+    document.getElementById("result_show1").innerHTML = result.html;
+    document.getElementById("no_change").style.display = (src_st == result.out) ? "block" : "none";
+    return true;
+}
+
+// ***** クリアボタン *****
+function clear_button() {
+    // ***** デバッグ表示の初期化 *****
+    DebugShowClear();
+    // ***** 要素の存在チェック *****
+    if (!document.getElementById("src_text1"))    { Alm("clear_button:0001"); return false; }
+    if (!document.getElementById("out_text1"))    { Alm("clear_button:0002"); return false; }
+    if (!document.getElementById("result_show1")) { Alm("clear_button:0003"); return false; }
+    if (!document.getElementById("no_change"))    { Alm("clear_button:0004"); return false; }
+    // ***** ソースのクリア *****
+    document.getElementById("src_text1").value = "";
+    // ***** 出力のクリア *****
+    document.getElementById("out_text1").value = "";
+    document.getElementById("result_show1").innerHTML = "";
+    document.getElementById("no_change").style.display = "none";
+    return true;
+}
+
+// ***** サンプルボタン *****
+function sample_button(sample_no) {
+    var src_st;
+    var pat_st;
+    var start_no;
+    var step_no;
+    var decimal_no;
+
+    // ***** 要素の存在チェック *****
+    if (!document.getElementById("src_text1"))      { Alm("sample_button:0001"); return false; }
+    if (!document.getElementById("pattern"))        { Alm("sample_button:0002"); return false; }
+    if (!document.getElementById("start_number"))   { Alm("sample_button:0003"); return false; }
+    if (!document.getElementById("step_number"))    { Alm("sample_button:0004"); return false; }
+    if (!document.getElementById("decimal_number")) { Alm("sample_button:0005"); return false; }
+    // ***** ソースの設定 *****
+    src_st = "";
+    pat_st = "%d";
+    start_no = "1";
+    step_no = "1";
+    decimal_no = "0";
+    switch (sample_no) {
+        case 0:
+            src_st = "10 20 30\n"
+                   + "8000\n"
+                   + "5000\n";
+            break;
+        case 1:
+            src_st = "x[1] = 1;\n"
+                   + "x[2] = 2;\n"
+                   + "x[3] = 3;\n";
+            pat_st = "= %d";
+            start_no = "10.0";
+            step_no = "0.1";
+            decimal_no = "1";
+            break;
+        case 2:
+            src_st = "switch (x) {\n"
+                   + "    case 100: y = 10; break;\n"
+                   + "    case 200: y = 20; break;\n"
+                   + "    case 300: y = 30; break;\n"
+                   + "}\n";
+            pat_st = "case %d:";
+            break;
+    }
+    document.getElementById("src_text1").value = src_st;
+    document.getElementById("pattern").value = pat_st;
+    document.getElementById("start_number").value = start_no;
+    document.getElementById("step_number").value = step_no;
+    document.getElementById("decimal_number").value = decimal_no;
+    // ***** 変換ボタンを押したことにする *****
+    convert_button();
+    return true;
+}
+
+
+// ****************************************
+//          複数の数値を連番に変換
+// ****************************************
+
+// ***** ReplaceNo(名前空間) *****
+//
+// 公開I/F :
+//
+//   ReplaceNo.convert(src_st, pat_st, start_no, step_no, decimal_no, show_color)  変換実行
+//     src_st      ソース(文字列)
+//     pat_st      パターン(文字列)
+//     start_no    初期値
+//     step_no     増分
+//     decimal_no  小数の表示桁数
+//     show_color  色表示フラグ(boolean)
+//     戻り値      結果オブジェクト
+//                   result.out   テキスト出力(文字列)
+//                   result.html  HTML出力(文字列)
+//
+var ReplaceNo;
+(function (ReplaceNo) {
+    // ***** 定数 *****
+    var color_replaced = 0xff0000; // 置換部分の表示色
+
+    // ***** 変数 *****
+    var src_st;       // ソース(文字列)
+    var pat_st;       // パターン(文字列)
+    var reg_pat;      // パターンの正規表現(オブジェクト)
+    var reg_pat_st;   // パターンの正規表現(文字列)
+    var start_no;     // 初期値
+    var step_no;      // 増分
+    var decimal_no;   // 小数の表示桁数
+    var show_color;   // 色表示フラグ(boolean)
+    var out_st;       // テキスト出力(文字列)
+    var html_st;      // HTML出力(文字列)
+    var line_st = []; // 行データ(文字列)(配列)
+    var out1_st = []; // 出力データ1(文字列)(配列)
+    var out2_st = []; // 出力データ2(文字列)(配列)
+
+    // ***** 公開I/F *****
+
+    // ***** 変換実行 *****
+    function convert(src_st1, pat_st1, start_no1, step_no1, decimal_no1, show_color1) {
+        var result = {}; // 戻り値
+        var i;
+        var no1, no2;
+        var reg_newline  = /\r\n|\r|\n/; // 改行
+        var reg_digit    = /[+\-]?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?/g;      // 数値
+        var reg_digit_st = "[+\\-]?\\d+(?:\\.\\d+)?(?:[eE][+\\-]?\\d+)?"; // (上の文字列化)
+
+        // ***** 戻り値の初期化 *****
+        result = {};
+        result.out = "";
+        result.html = "";
+
+        // ***** 引数のチェック *****
+        if (src_st1 == null)     { Alm("ReplaceNo.convert:0001"); return result; }
+        if (pat_st1 == null)     { Alm("ReplaceNo.convert:0002"); return result; }
+        if (start_no1 == null)   { Alm("ReplaceNo.convert:0003"); return result; }
+        if (step_no1 == null)    { Alm("ReplaceNo.convert:0004"); return result; }
+        if (decimal_no1 == null) { Alm("ReplaceNo.convert:0005"); return result; }
+        if (show_color1 == null) { Alm("ReplaceNo.convert:0006"); return result; }
+
+        // ***** ソースの取得 *****
+        src_st = src_st1;
+        line_st = src_st.split(reg_newline);
+        // ***** パターンの取得 *****
+        pat_st = pat_st1;
+        reg_pat_st = pat_st
+            .replace(/([.*+?\^=!:${}()|\[\]\/\\])/g, "\\$1") // 特殊文字の無効化
+            .replace(/%%/g,    "[%]")         // %% は % に置換
+            .replace(/%\\\^/g, "^")           // %^ は 行頭にマッチさせる
+            .replace(/%\\\$/g, "$")           // %$ は 行末にマッチさせる
+            .replace(/%s/g,    "\\s")         // %s は 空白/タブにマッチさせる
+            .replace(/%t/g,    "\\t")         // %t は タブにマッチさせる
+            .replace(/%d/g,    reg_digit_st); // %d は 数値にマッチさせる
+        // DebugShow(reg_pat_st);
+        reg_pat = new RegExp(reg_pat_st, "g");
+        // ***** 初期値の取得 *****
+        start_no = +start_no1;
+        // ***** 増分の取得 *****
+        step_no = +step_no1;
+        // ***** 小数の表示桁数の取得 *****
+        decimal_no = decimal_no1 | 0;
+        // if (decimal_no < 0)  { decimal_no = 0; }
+        // if (decimal_no > 20) { decimal_no = 20; }
+        try {
+            no1 = start_no;
+            no1.toFixed(decimal_no);
+        } catch (ex) {
+            Alm2("decimal の値が不正です。");
+            return result;
+        }
+        // ***** 色表示フラグの取得 *****
+        show_color = show_color1;
+
+        // ***** 変換 *****
+        no1 = start_no;
+        no2 = start_no;
+        out1_st = [];
+        out2_st = [];
+        for (i = 0; i < line_st.length; i++) {
+            // パターンにマッチした文字列の数値部分のみを連番に置換する
+            // (テキスト出力用)
+            out1_st[i] = line_st[i].replace(reg_pat, function (hit_st) {
+                var ret_st = hit_st.replace(reg_digit, function () {
+                    var ret_st = no1.toFixed(decimal_no);
+                    no1 += step_no;
+                    return ret_st;
+                });
+                return ret_st;
+            });
+            // (HTML出力用)
+            out2_st[i] = line_st[i].replace(reg_pat, function (hit_st) {
+                var ret_st = hit_st.replace(reg_digit, function () {
+                    var ret_st = no2.toFixed(decimal_no);
+                    no2 += step_no;
+                    return ret_st;
+                });
+                ret_st = escape_html(ret_st);
+                if (show_color) {
+                    ret_st = "<span style='color: " +
+                        make_color_code(color_replaced) + ";'>" +
+                        ret_st + "<\/span>";
+                }
+                return ret_st;
+            });
+        }
+
+        // ***** 出力の生成 *****
+        out_st = out1_st.join("\n");
+        html_st = out2_st.join("\n");
+
+        // ***** 戻り値を返す *****
+        result.out = out_st;
+        result.html = html_st;
+        return result;
+    }
+    ReplaceNo.convert = convert;
+
+    // ***** 公開I/Fはここまで *****
+
+    // ***** 以下は内部処理用 *****
+
+    // ***** 色コード文字列を作る *****
+    function make_color_code(color) {
+        var result_st;
+        result_st = "000000" + color.toString(16);
+        result_st = "#" + result_st.substring(result_st.length - 6);
+        return result_st;
+    }
+
+    // ***** HTML文字列のエスケープ処理 *****
+    function escape_html(html_st) {
+        return html_st
+            .replace(/&/g,   "&amp;")
+            .replace(/[<]/g, "&lt;")
+            .replace(/>/g,   "&gt;")
+            .replace(/"/g,   "&quot;")
+            .replace(/'/g,   "&#39;");
+    }
+
+
+})(ReplaceNo || (ReplaceNo = {}));
+
+
+// -->
+</script>
+</head>
+
+<body class="main_container">
+
+<form action="#" onsubmit="convert_button(); return false;">
+<table style="width: 95%;"><tr>
+<td colspan="3" style="text-align: center;">Replace Numbers To Serial Numbers</td>
+</tr><tr>
+<td style="vertical-align: top;">src:</td>
+<td style="width: 95%;"><textarea id="src_text1" cols="40" rows="10" style="width: 100%;"></textarea></td>
+<td></td>
+</tr><tr>
+<td></td>
+<td><input type="submit" value="convert"> &nbsp;
+<input type="button" value="clear" onclick="clear_button();"> &nbsp;
+pattern : <input type="text" id="pattern" value="%d" style="width: 200px;"> <br>
+start : <input type="text" id="start_number" value="1" style="width: 40px;"> &nbsp;
+step : <input type="text" id="step_number" value="1" style="width: 40px;"> &nbsp;
+decimal : <input type="text" id="decimal_number" value="0" style="width: 40px;"> &nbsp;
+<input type="checkbox" id="show_color" value="1" checked>color</td>
+<td></td>
+</tr><tr>
+<td style="vertical-align: top;">out:</td>
+<td style="width: 95%;"><textarea id="out_text1" cols="40" rows="10" style="width: 100%;"></textarea></td>
+<td></td>
+</tr><tr>
+<td></td>
+<td><input type="button" value="sample1" onclick="sample_button(0);">
+<input type="button" value="sample2" onclick="sample_button(1);">
+<input type="button" value="sample3" onclick="sample_button(2);"></td>
+<td></td>
+</tr></table>
+<div id="no_change" style="display: none;"><br><b>[ no change ]</b></div>
+<pre><span id="debug_show1"></span></pre>
+<pre><span id="result_show1"></span></pre>
+</form>
+
+</body>
+</html>
