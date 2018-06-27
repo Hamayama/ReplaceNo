@@ -5,7 +5,7 @@
 <title>ReplaceNo</title>
 <!--
     replaceno.html
-    2018-6-27 v1.02
+    2018-6-27 v1.03
 -->
 <style type="text/css">
 <!--
@@ -218,6 +218,7 @@ var ReplaceNo;
         line_st = src_st.split(reg_newline);
         // ***** パターンの取得 *****
         pat_st = pat_st1;
+        if (pat_st == "") { Alm2("pattern がありません。"); return result; }
         reg_pat_st = pat_st
             .replace(/([.*+?\^=!:${}()|\[\]\/\\])/g, "\\$1") // 特殊文字の無効化
             .replace(/%%/g,    "[%]")         // %% は % に置換
@@ -239,10 +240,7 @@ var ReplaceNo;
         try {
             no = start_no;
             no.toFixed(decimal_no);
-        } catch (ex) {
-            Alm2("decimal の値が不正です。");
-            return result;
-        }
+        } catch (ex) { Alm2("decimal の値が不正です。"); return result; }
         // ***** 色表示フラグの取得 *****
         show_color = show_color1;
 
@@ -292,6 +290,10 @@ var ReplaceNo;
             line_out_st[i] += escape_html(line_st[i].substring(index_last, line_st[i].length));
         }
         html_st = line_out_st.join("\n");
+        // ***** IE8対策 *****
+        if (document.attachEvent && !document.addEventListener) {
+            html_st = "<pre>" + html_st + "<\/pre>";
+        }
 
         // ***** 戻り値を返す *****
         result.out = out_st;
